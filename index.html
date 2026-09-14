@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WordPress Contact Form 7 관리자 & 실시간 공유기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 워드프레스 관리자 스타일 폰트 및 리셋 */
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; }
+    
+    /* 렌더링 미리보기 내부 스타일 */
+    .cf7-rendered label b {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 0.35rem;
+    }
+    .cf7-rendered input[type="text"],
+    .cf7-rendered input[type="tel"],
+    .cf7-rendered input[type="email"],
+    .cf7-rendered input[type="number"],
+    .cf7-rendered select,
+    .cf7-rendered textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.375rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      outline: none;
+      background-color: #ffffff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .cf7-rendered input:focus,
+    .cf7-rendered select:focus,
+    .cf7-rendered textarea:focus {
+      border-color: #2271b1;
+      box-shadow: 0 0 0 2px #bfdbfe;
+    }
+    .cf7-rendered .cf-option-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.25rem;
+    }
+    .cf7-rendered .cf-option-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.9rem;
+      color: #334155;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-[#f0f0f1] text-[#2c3338] min-h-screen">
+
+  <!-- 상단 네비게이션 헤더 -->
+  <header class="bg-[#1d2327] text-white px-6 py-3 flex flex-wrap justify-between items-center shadow">
+    <div class="flex items-center gap-3">
+      <span class="bg-[#2271b1] px-2 py-0.5 rounded text-xs font-bold tracking-wide">WordPress CF7</span>
+      <h1 class="text-sm font-semibold">문의 양식 편집 및 고유 링크 공유 도구</h1>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="generateShareUrl()" class="bg-[#2271b1] hover:bg-[#135e96] text-white text-xs font-semibold px-3.5 py-1.5 rounded transition shadow-sm">
+        🔗 공유 링크 생성
+      </button>
+      <button onclick="copyShareUrl()" id="copyBtn" class="bg-[#008a20] hover:bg-[#00701a] text-white text-xs font-semibold px-3.5 py-1.5 rounded transition shadow-sm">
+        📋 링크 복사
+      </button>
+    </div>
+  </header>
+
+  <!-- 공유 URL 안내 배너 -->
+  <div id="shareBanner" class="hidden bg-[#f0f6fc] border-b border-[#cce5ff] px-6 py-2 flex items-center justify-between">
+    <div class="flex items-center gap-2 w-full max-w-4xl">
+      <span class="text-xs font-bold text-[#1d2327] whitespace-nowrap">공유 URL:</span>
+      <input id="shareInput" type="text" readonly class="w-full text-xs bg-white border border-[#8c8f94] rounded px-2 py-1 select-all" />
+    </div>
+    <span id="copiedToast" class="text-xs font-bold text-emerald-700 hidden">복사 완료!</span>
+  </div>
+
+  <main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- 좌측: 워드프레스 문의 양식 관리자 영역 -->
+    <section class="lg:col-span-7 space-y-4">
+      
+      <!-- 제목 입력창 -->
+      <div class="bg-white border border-[#c3c4c7] p-3 rounded shadow-sm">
+        <label class="block text-xs font-bold text-[#50575e] mb-1">문의 양식 제목</label>
+        <input type="text" id="formTitleInput" value="좌담회/설문 참가 신청서" class="w-full text-base font-bold border border-[#8c8f94] rounded px-3 py-1.5 outline-none focus:border-[#2271b1]" oninput="updateFormTitle()" />
+      </div>
+
+      <!-- 메인 탭 (양식 / 메일) -->
+      <div class="bg-white border border-[#c3c4c7] rounded shadow-sm">
+        <div class="flex border-b border-[#c3c4c7] bg-[#f6f7f7] px-3 pt-2 gap-1 text-xs font-semibold text-[#50575e]">
+          <button type="button" id="tabBtnForm" onclick="switchMainTab('form')" class="px-4 py-2 border-t border-l border-r border-[#c3c4c7] bg-white text-[#1d2327] -mb-[1px] font-bold">양식</button>
+          <button type="button" id="tabBtnMail" onclick="switchMainTab('mail')" class="px-4 py-2 border-t border-transparent hover:text-[#1d2327]">메일</button>
+        </div>
+
+        <!-- [1] 양식 탭 -->
+        <div id="panelForm" class="p-4 space-y-4">
+          <!-- 도구 모음 단축 버튼 -->
+          <div class="flex flex-wrap gap-1 p-2 bg-[#f0f0f1] border border-[#dcdcde] rounded text-xs">
+            <button onclick="insertTag('text')" class="px-2 py-1 bg-white border border-[#c3c4c7] rounded hover:bg-gray-50">텍스트</button>
+            <button onclick="insertTag('tel')" class="px-2 py-1 bg-white border border-[#c3c4c7] rounded hover:bg-gray-50">전화</button>
+            <button onclick="insertTag('number')" class="px-2 py-1 bg-white border border-[#c3c4c7] rounded hover:bg-gray-50">숫자</button>
+            <button onclick="insertTag('email')" class="px-2 py-1 bg-white border border-[#c3c4c7] rounded hover:bg-gray-50">이메일</button>
+            <button onclick="insertTag('radio')" class="px-2 py-1 bg-white border border-[#c3c4c7] rounded hover:bg-gray-50">라디오</button>
+            <button onclick="insertTag('select')" class="px-2 py-1 bg-white border border-[#c3c4c7] rounded hover:bg-gray-50">드롭다운</button>
+            <button onclick="insertTag('acceptance')" class="px-2 py-1 bg-white border border-[#c3c4c7] rounded hover:bg-gray-50">동의하기</button>
+            <button onclick="insertTag('submit')" class="px-2 py-1 bg-white border border-[#c3c4c7] rounded text-[#2271b1] font-bold hover:bg-gray-50">제출</button>
+          </div>
+
+          <!-- 다단계(Multi-Step) 탭 바 -->
+          <div class="flex items-center gap-1 border-b border-[#c3c4c7] pb-1 overflow-x-auto" id="stepTabList"></div>
+
+          <!-- 스텝 세부 정보 -->
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block font-semibold text-[#50575e] mb-1">Step Name</label>
+              <input type="text" id="stepNameInput" class="w-full border border-[#8c8f94] rounded p-1.5 outline-none focus:border-[#2271b1]" oninput="updateStepMeta()" />
+            </div>
+            <div>
+              <label class="block font-semibold text-[#50575e] mb-1">Next Button Text</label>
+              <input type="text" id="nextBtnInput" class="w-full border border-[#8c8f94] rounded p-1.5 outline-none focus:border-[#2271b1]" oninput="updateStepMeta()" />
+            </div>
+          </div>
+
+          <!-- 코드 입력 텍스트 영역 -->
+          <div>
+            <textarea id="cf7CodeArea" rows="14" class="w-full font-mono text-xs border-2 border-[#2271b1] rounded p-3 bg-white outline-none leading-relaxed" oninput="onStepCodeChange()"></textarea>
+          </div>
+        </div>
+
+        <!-- [2] 메일 탭 (첨부해주신 스크린샷 규격 완벽 반영) -->
+        <div id="panelMail" class="hidden p-4 space-y-3.5 text-xs">
+          <p class="text-[#50575e]">여기에서 이메일 템플릿을 편집할 수 있습니다. 폼 제출 시 사용자가 입력한 데이터로 치환됩니다.</p>
+
+          <div>
+            <label class="block font-bold text-[#50575e] mb-1">받는 사람</label>
+            <input type="text" id="mailTo" value="[_site_admin_email]" class="w-full border border-[#8c8f94] rounded p-1.5 outline-none focus:border-[#2271b1]" />
+          </div>
+
+          <div>
+            <label class="block font-bold text-[#50575e] mb-1">보내는 사람</label>
+            <input type="text" id="mailFrom" value="[_site_title] &lt;asdfeel@albabank.co.kr&gt;" class="w-full border border-[#8c8f94] rounded p-1.5 outline-none focus:border-[#2271b1]" />
+          </div>
+
+          <div>
+            <label class="block font-bold text-[#50575e] mb-1">제목</label>
+            <input type="text" id="mailSubject" value="[_site_title] &quot;[your-subject]&quot;" class="w-full border border-[#8c8f94] rounded p-1.5 outline-none focus:border-[#2271b1]" />
+          </div>
+
+          <div>
+            <label class="block font-bold text-[#50575e] mb-1">추가 헤더</label>
+            <textarea id="mailHeaders" rows="2" class="w-full font-mono border border-[#8c8f94] rounded p-2 outline-none focus:border-[#2271b1]">Reply-To: [your-email]</textarea>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[#50575e] mb-1">메시지 본문</label>
+            <textarea id="mailBodyArea" rows="14" class="w-full font-mono border border-[#8c8f94] rounded p-2 outline-none focus:border-[#2271b1] leading-relaxed" oninput="onMailBodyChange()"></textarea>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 우측: 실제 작동 렌더링 미리보기 & 제출 테스트 -->
+    <section class="lg:col-span-5 flex flex-col">
+      <div class="bg-white border border-[#c3c4c7] rounded shadow-sm p-6 sticky top-6 flex-1 flex flex-col">
+        
+        <div class="border-b border-[#dcdcde] pb-3 mb-4">
+          <h2 id="previewTitle" class="text-base font-bold text-center text-[#1d2327]">좌담회/설문 참가 신청서</h2>
+          <div class="w-full bg-[#dcdcde] rounded-full h-1.5 mt-3">
+            <div id="progressBar" class="bg-[#2271b1] h-1.5 rounded-full transition-all duration-300" style="width: 50%;"></div>
+          </div>
+          <div class="flex justify-between text-xs text-[#50575e] mt-1.5">
+            <span id="stepIndicator">Step 1 of 2</span>
+            <span id="stepTitleIndicator">기본 인적사항</span>
+          </div>
+        </div>
+
+        <!-- 렌더링된 반응형 폼 -->
+        <form id="renderForm" onsubmit="event.preventDefault(); submitActiveForm();" class="cf7-rendered space-y-4 flex-1">
+        </form>
+
+        <!-- 이전 / 다음 네비게이션 버튼 -->
+        <div class="pt-4 border-t border-[#dcdcde] flex justify-between gap-2 mt-auto">
+          <button type="button" id="prevStepBtn" onclick="navigateStep(-1)" class="hidden px-4 py-2 border border-[#8c8f94] text-xs font-semibold rounded hover:bg-[#f6f7f7]">이전</button>
+          <button type="button" id="nextStepBtn" onclick="navigateStep(1)" class="ml-auto px-5 py-2 bg-[#2271b1] text-white text-xs font-semibold rounded hover:bg-[#135e96] shadow-sm">다음 단계</button>
+        </div>
+
+        <!-- 최종 제출 결과 모달 (메일 탭 형식으로 실제 파싱되어 나오는 데이터) -->
+        <div id="submitResultModal" class="hidden mt-4 p-4 border border-emerald-300 bg-emerald-50 rounded text-xs space-y-2">
+          <div class="font-bold text-emerald-800 flex justify-between items-center">
+            <span>✅ 폼 제출 성공 (메일 탭 서식으로 생성된 이메일 전문)</span>
+            <button onclick="document.getElementById('submitResultModal').classList.add('hidden')" class="text-gray-500 font-bold hover:text-black">✕</button>
+          </div>
+          <div id="parsedMailPreview" class="bg-white p-3 border border-emerald-200 rounded font-sans text-gray-800 leading-relaxed overflow-x-auto"></div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // 1. 요청하신 메일 탭 기본 본문 템플릿
+    const defaultMailBody = `<B>*좌담회 제목 </b>
+<P>[your-subject]</p>
+<HR>
+<b>*리서치회사 메일</b>
+<p> </p>
+<HR>
+<b>*기재사항</b>
+<p><FONT SIZE="2" face="Malgun Gothic">
+[your-name]/[sex]/[age]세/[jumin]/[tel]/[job]([company])/[address1],[address2],[address3]/[message1]/[message2]
+</font></p>
+<HR>
+<P>*일정: [date]</p> 
+<p>*조건: [terms]</p>
+<p>*보낸사람: [your-name]</p>
+<p>*6개월이내다녀온리서치회사: [return]</p> 
+<p>*개인정보 수집 및 이용에 동의: [acceptance-681]</p>
+<p>*보낸이메일주소: [your-email]</p>
+
+--
+귀하의 웹사이트([_site_title] [_site_url])에서 문의 양식이 제출되었습니다.`;
+
+    // 2. 다단계 2스텝으로 분할 구성된 양식 데이터
+    const initialSteps = [
+      {
+        id: 1,
+        name: "기본 인적사항 및 거주지",
+        nextText: "다음: 직업 및 상세정보",
+        code: `[hidden title "()"]
+[hidden your-subject "소개"]
+[hidden date "2026/"]
+[hidden terms ""]
+
+<label><b>이름</b> (필수)</label>
+[text* your-name maxlength:10 placeholder "이름 입력"]
+
+<label><b>성별</b> (필수)</label>
+[radio sex use_label_element default:1 "남자" "여자"]
+
+<label><b>나이</b> (필수)</label>
+[number* age min:10 max:99 placeholder "만 나이 숫자만"]
+
+<label><b>생년월일 (예. 860523)</b> (필수)</label>
+[number* jumin min:000001 max:999999 placeholder "주민등록번호 앞 6자리"]
+
+<label><b>연락처</b> (필수)</label>
+[mask* tel "___-____-____"]
+
+<label><b>거주지(서울,인천,경기 시/도)</b> (필수)</label>
+[select* address1 first_as_label "-- 선택해주세요 --" "서울시" "인천시" "경기도"]
+
+<label><b>거주지(서울,인천,경기 시/군/구)</b> (필수)</label>
+[select address2 first_as_label "-- 서울시 선택해주세요 --" "종로구" "중구" "용산구" "성동구" "광진구" "동대문구" "중랑구" "성북구" "강북구" "도봉구" "노원구" "은평구" "서대문구" "마포구" "양천구" "강서구" "구로구" "금천구" "영등포구" "동작구" "관악구" "서초구" "강남구" "송파구" "강동구" "-- 인천시 선택해주세요 --" "중구" "동구" "미추홀구" "연수구" "남동구" "부평구" "계양구" "서구" "강화군" "옹진군" "-- 경기도 선택해주세요 --" "수원시 장안구" "수원시 권선구" "수원시 팔달구" "수원시 영통구" "성남시 수정구" "성남시 중원구" "성남시 분당구" "의정부시" "안양시 만안구" "안양시 동안구" "부천시" "광명시" "평택시" "동두천시" "안산시 상록구" "안산시 단원구" "고양시 덕양구" "고양시 일산동구" "고양시 일산서구" "과천시" "구리시" "남양주시" "오산시" "시흥시" "군포시" "의왕시" "하남시" "용인시 처인구" "용인시 기흥구" "용인시 수지구" "파주시" "이천시" "안성시" "김포시" "화성시" "광주시" "양주시" "포천시" "여주시" "연천군" "가평군" "양평군"]`
+      },
+      {
+        id: 2,
+        name: "직업/상세 및 최종 제출",
+        nextText: "신청서 제출하기",
+        code: `<label><b>거주지(읍/면/동)</b> (필수)</label>
+[text* address3 maxlength:4 placeholder "예: 역삼동"]
+
+<label><b>직업</b> (필수)</label>
+[select* job first_as_label "-- 직업선택 --" "회사원" "자영업" "프리랜서" "전업주부" "학생" "무직"]
+
+<label><b>소속(직장명/학교명-학년-대학생은 학과/프리랜서는 하시는일 간단히/자영업은 상호명)</b> (필수)</label>
+[text* company maxlength:30 placeholder "소속 입력"]
+
+<label><b>기재사항 1</b> (필수)</label>
+[text* message1 placeholder "참여 가능 시간대 등"]
+
+<label><b>기재사항 2</b> (필수)</label>
+[text* message2 placeholder "차량 소유 여부/특이사항 등"]
+
+<label><b>6개월이내 다녀온 리서치회사와 참석 확정된 회사</b> (필수)</label>
+[text* return id:rgques maxlength:100 placeholder "없으면 '없음' 기재"]
+
+<label><b>이메일주소</b> (필수)</label>
+[email* your-email maxlength:100 placeholder "example@email.com"]
+
+[acceptance acceptance-681] 개인정보 수집 및 이용에 동의함 <span style="color:red">(필수)</span> [/acceptance]
+
+[submit "좌담회/설문 신청하기"]`
+      }
+    ];
+
+    let state = {
+      title: "좌담회/설문 참가 신청서",
+      currentStepIndex: 0,
+      steps: initialSteps,
+      mailBody: defaultMailBody,
+      formData: {}
+    };
+
+    // URL 해시 복원
+    function loadFromHash() {
+      if (window.location.hash && window.location.hash.length > 1) {
+        try {
+          const raw = decodeURIComponent(escape(atob(window.location.hash.substring(1))));
+          const parsed = JSON.parse(raw);
+          if (parsed.steps && parsed.steps.length > 0) {
+            state.title = parsed.title || state.title;
+            state.steps = parsed.steps;
+            state.mailBody = parsed.mailBody || state.mailBody;
+            state.currentStepIndex = 0;
+          }
+        } catch (e) {
+          console.warn("해시 데이터 파싱 실패", e);
+        }
+      }
+    }
+
+    // 워드프레스 CF7 파서 엔진
+    function parseCF7(code) {
+      let html = code;
+
+      // 1. [hidden name "value"]
+      html = html.replace(/\[hidden\s+([^\s\]]+)(?:\s+"([^"]*)")?[^\]]*\]/g, (m, name, val) => {
+        return `<input type="hidden" name="${name}" value="${val || ''}" />`;
+      });
+
+      // 2. [text* name ...]
+      html = html.replace(/\[text\*?\s+([^\s\]]+)(?:[^\s\]]*\s+placeholder\s+"([^"]+)")?[^\]]*\]/g, (m, name, ph) => {
+        const val = state.formData[name] || '';
+        return `<input type="text" name="${name}" value="${val}" placeholder="${ph || ''}" />`;
+      });
+
+      // 3. [number* name ...]
+      html = html.replace(/\[number\*?\s+([^\s\]]+)(?:[^\s\]]*\s+placeholder\s+"([^"]+)")?[^\]]*\]/g, (m, name, ph) => {
+        const val = state.formData[name] || '';
+        return `<input type="number" name="${name}" value="${val}" placeholder="${ph || ''}" />`;
+      });
+
+      // 4. [tel* name ...] / [mask* tel ...]
+      html = html.replace(/\[(?:tel\*?|mask\*?)\s+([^\s\]]+)(?:[^\s\]]*\s+(?:placeholder\s+"([^"]+)"|"([^"]+)"))?[^\]]*\]/g, (m, name, ph1, ph2) => {
+        const ph = ph1 || ph2 || '';
+        const val = state.formData[name] || '';
+        return `<input type="tel" name="${name}" value="${val}" placeholder="${ph}" />`;
+      });
+
+      // 5. [email* name ...]
+      html = html.replace(/\[email\*?\s+([^\s\]]+)(?:[^\s\]]*\s+placeholder\s+"([^"]+)")?[^\]]*\]/g, (m, name, ph) => {
+        const val = state.formData[name] || '';
+        return `<input type="email" name="${name}" value="${val}" placeholder="${ph || ''}" />`;
+      });
+
+      // 6. [radio name ...]
+      html = html.replace(/\[radio\s+([^\s\]]+)(?:\s+use_label_element)?(?:\s+default:\d+)?[^\]]*(".*?")\]/g, (m, name, rawOptions) => {
+        const matches = rawOptions.match(/"([^"]+)"/g) || [];
+        let group = `<div class="cf-option-group">`;
+        matches.forEach((item, idx) => {
+          const val = item.replace(/"/g, "");
+          const isChecked = state.formData[name] ? (state.formData[name] === val) : (idx === 0);
+          group += `
+            <label class="cf-option-label">
+              <input type="radio" name="${name}" value="${val}" ${isChecked ? 'checked' : ''} class="text-blue-600 focus:ring-blue-500">
+              <span>${val}</span>
+            </label>`;
+        });
+        group += `</div>`;
+        return group;
+      });
+
+      // 7. [select* name ...]
+      html = html.replace(/\[select\*?\s+([^\s\]]+)(?:\s+first_as_label)?[^\]]*(".*?")\]/g, (m, name, rawOptions) => {
+        const matches = rawOptions.match(/"([^"]+)"/g) || [];
+        let sel = `<select name="${name}">`;
+        matches.forEach((item) => {
+          const val = item.replace(/"/g, "");
+          const isSelected = state.formData[name] === val ? 'selected' : '';
+          sel += `<option value="${val}" ${isSelected}>${val}</option>`;
+        });
+        sel += `</select>`;
+        return sel;
+      });
+
+      // 8. [acceptance name] ... [/acceptance]
+      html = html.replace(/\[acceptance\s+([^\s\]]+)\]([\s\S]*?)\[\/acceptance\]/g, (m, name, labelHtml) => {
+        const isChecked = state.formData[name] ? 'checked' : '';
+        return `
+          <label class="cf-option-label mt-2">
+            <input type="checkbox" name="${name}" value="동의함" ${isChecked} required class="rounded text-blue-600 focus:ring-blue-500">
+            <span class="text-xs text-gray-700 leading-snug">${labelHtml.trim()}</span>
+          </label>`;
+      });
+
+      // 9. [submit "문구"]
+      html = html.replace(/\[submit\s+"([^"]+)"\]/g, (m, text) => {
+        return `<button type="submit" class="w-full mt-4 bg-[#2271b1] hover:bg-[#135e96] text-white font-bold py-3 rounded shadow transition">${text}</button>`;
+      });
+
+      // 줄바꿈 보존
+      html = html.replace(/\n\n+/g, '<div class="h-3"></div>');
+
+      return html;
+    }
+
+    // UI 전체 렌더링
+    function renderApp() {
+      // 1. 에디터 탭
+      document.getElementById('formTitleInput').value = state.title;
+      const currentStep = state.steps[state.currentStepIndex];
+      document.getElementById('stepNameInput').value = currentStep.name;
+      document.getElementById('nextBtnInput').value = currentStep.nextText;
+      document.getElementById('cf7CodeArea').value = currentStep.code;
+      document.getElementById('mailBodyArea').value = state.mailBody;
+
+      // 2. 다단계 Step 탭 그리기
+      const stepTabList = document.getElementById('stepTabList');
+      stepTabList.innerHTML = '';
+      state.steps.forEach((step, idx) => {
+        const isActive = idx === state.currentStepIndex;
+        const div = document.createElement('div');
+        div.className = `flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded cursor-pointer transition border ${
+          isActive 
+            ? 'bg-[#2271b1] text-white border-[#2271b1] shadow-sm' 
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+        }`;
+        div.innerHTML = `
+          <span onclick="switchStep(${idx})">Step ${idx + 1}: ${step.name}</span>
+          ${state.steps.length > 1 ? `<span onclick="removeStep(event, ${idx})" class="hover:text-red-300 font-bold ml-1">×</span>` : ''}
+        `;
+        stepTabList.appendChild(div);
+      });
+
+      const addBtn = document.createElement('button');
+      addBtn.className = "px-2.5 py-1 text-xs border border-dashed border-gray-400 text-gray-600 rounded hover:bg-gray-200 font-bold";
+      addBtn.innerText = "+ Step 추가";
+      addBtn.onclick = addStep;
+      stepTabList.appendChild(addBtn);
+
+      // 3. 우측 실시간 미리보기 렌더링
+      document.getElementById('previewTitle').innerText = state.title;
+      const pct = ((state.currentStepIndex + 1) / state.steps.length) * 100;
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('stepIndicator').innerText = `Step ${state.currentStepIndex + 1} of ${state.steps.length}`;
+      document.getElementById('stepTitleIndicator').innerText = currentStep.name;
+
+      document.getElementById('renderForm').innerHTML = parseCF7(currentStep.code);
+
+      // 4. 네비게이션 버튼 처리
+      const prevBtn = document.getElementById('prevStepBtn');
+      const nextBtn = document.getElementById('nextStepBtn');
+
+      if (state.currentStepIndex > 0) {
+        prevBtn.classList.remove('hidden');
+      } else {
+        prevBtn.classList.add('hidden');
+      }
+
+      if (currentStep.code.includes('[submit')) {
+        nextBtn.classList.add('hidden');
+      } else {
+        nextBtn.classList.remove('hidden');
+        nextBtn.innerText = currentStep.nextText || '다음 단계';
+      }
+    }
+
+    // 메인 탭 전환 (양식 vs 메일)
+    function switchMainTab(tab) {
+      const isForm = tab === 'form';
+      document.getElementById('panelForm').classList.toggle('hidden', !isForm);
+      document.getElementById('panelMail').classList.toggle('hidden', isForm);
+
+      document.getElementById('tabBtnForm').className = isForm
+        ? "px-4 py-2 border-t border-l border-r border-[#c3c4c7] bg-white text-[#1d2327] -mb-[1px] font-bold"
+        : "px-4 py-2 border-t border-transparent hover:text-[#1d2327]";
+
+      document.getElementById('tabBtnMail').className = !isForm
+        ? "px-4 py-2 border-t border-l border-r border-[#c3c4c7] bg-white text-[#1d2327] -mb-[1px] font-bold"
+        : "px-4 py-2 border-t border-transparent hover:text-[#1d2327]";
+    }
+
+    // 입력값 저장
+    function saveFormData() {
+      const form = document.getElementById('renderForm');
+      if (!form) return;
+      const data = new FormData(form);
+      for (const [key, val] of data.entries()) {
+        state.formData[key] = val;
+      }
+    }
+
+    // 스텝 전환
+    function switchStep(index) {
+      saveFormData();
+      state.currentStepIndex = index;
+      renderApp();
+    }
+
+    function addStep() {
+      saveFormData();
+      const newId = state.steps.length + 1;
+      state.steps.push({
+        id: newId,
+        name: `추가 문항 ${newId}`,
+        nextText: "다음 단계",
+        code: `<label><b>새로운 질문 ${newId}</b> (필수)</label>\n[text* new-q${newId} placeholder "내용을 입력해주세요"]`
+      });
+      state.currentStepIndex = state.steps.length - 1;
+      renderApp();
+    }
+
+    function removeStep(e, index) {
+      e.stopPropagation();
+      if (state.steps.length <= 1) return;
+      state.steps.splice(index, 1);
+      if (state.currentStepIndex >= state.steps.length) {
+        state.currentStepIndex = state.steps.length - 1;
+      }
+      renderApp();
+    }
+
+    function navigateStep(direction) {
+      saveFormData();
+      const target = state.currentStepIndex + direction;
+      if (target >= 0 && target < state.steps.length) {
+        state.currentStepIndex = target;
+        renderApp();
+      }
+    }
+
+    // 에디터 수정 이벤트 핸들러
+    function updateFormTitle() {
+      state.title = document.getElementById('formTitleInput').value;
+      document.getElementById('previewTitle').innerText = state.title;
+    }
+
+    function updateStepMeta() {
+      state.steps[state.currentStepIndex].name = document.getElementById('stepNameInput').value;
+      state.steps[state.currentStepIndex].nextText = document.getElementById('nextBtnInput').value;
+      renderApp();
+    }
+
+    function onStepCodeChange() {
+      state.steps[state.currentStepIndex].code = document.getElementById('cf7CodeArea').value;
+      renderApp();
+    }
+
+    function onMailBodyChange() {
+      state.mailBody = document.getElementById('mailBodyArea').value;
+    }
+
+    // 툴바 태그 삽입
+    function insertTag(type) {
+      const textarea = document.getElementById('cf7CodeArea');
+      let snippet = "";
+      switch (type) {
+        case 'text': snippet = `\n<label><b>항목명</b> (필수)</label>\n[text* your-field placeholder "입력해주세요"]\n`; break;
+        case 'tel': snippet = `\n<label><b>전화번호</b> (필수)</label>\n[tel* your-tel placeholder "010-0000-0000"]\n`; break;
+        case 'number': snippet = `\n<label><b>숫자 입력</b> (필수)</label>\n[number* your-num min:1 max:100]\n`; break;
+        case 'email': snippet = `\n<label><b>이메일주소</b> (필수)</label>\n[email* your-email placeholder "example@email.com"]\n`; break;
+        case 'radio': snippet = `\n<label><b>선택 항목</b> (필수)</label>\n[radio your-radio use_label_element "옵션 1" "옵션 2"]\n`; break;
+        case 'select': snippet = `\n<label><b>드롭다운 선택</b> (필수)</label>\n[select* your-select first_as_label "-- 선택 --" "선택 1" "선택 2"]\n`; break;
+        case 'acceptance': snippet = `\n[acceptance your-terms] 개인정보 수집 및 이용에 동의함 (필수) [/acceptance]\n`; break;
+        case 'submit': snippet = `\n[submit "좌담회/설문 신청하기"]\n`; break;
+      }
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      textarea.value = textarea.value.substring(0, start) + snippet + textarea.value.substring(end);
+      state.steps[state.currentStepIndex].code = textarea.value;
+      renderApp();
+    }
+
+    // 폼 최종 제출 및 메일 탭 템플릿 변환
+    function submitActiveForm() {
+      saveFormData();
+
+      // 사이트 기본 태그 채우기
+      state.formData['_site_title'] = state.title;
+      state.formData['_site_url'] = window.location.origin;
+
+      let resultHtml = state.mailBody;
+
+      // [tag]를 실제 폼 입력값으로 치환
+      for (const [key, val] of Object.entries(state.formData)) {
+        const regex = new RegExp(`\\[${key}\\]`, 'g');
+        resultHtml = resultHtml.replace(regex, val || '');
+      }
+
+      // 아직 비어있는 미작성 태그는 빈칸으로 정리
+      resultHtml = resultHtml.replace(/\[[a-zA-Z0-9_\-]+\]/g, '');
+
+      const modal = document.getElementById('submitResultModal');
+      const preview = document.getElementById('parsedMailPreview');
+      preview.innerHTML = resultHtml;
+      modal.classList.remove('hidden');
+      modal.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 고유 링크 URL 생성 및 복사
+    function generateShareUrl() {
+      const payload = {
+        title: state.title,
+        steps: state.steps,
+        mailBody: state.mailBody
+      };
+      const hash = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+      const shareUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
+
+      const banner = document.getElementById('shareBanner');
+      const input = document.getElementById('shareInput');
+      input.value = shareUrl;
+      banner.classList.remove('hidden');
+      copyShareUrl();
+    }
+
+    function copyShareUrl() {
+      const input = document.getElementById('shareInput');
+      if (!input.value) {
+        generateShareUrl();
+        return;
+      }
+      navigator.clipboard.writeText(input.value).then(() => {
+        const toast = document.getElementById('copiedToast');
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 2500);
+      });
+    }
+
+    // 초기 실행
+    window.addEventListener('DOMContentLoaded', () => {
+      loadFromHash();
+      renderApp();
+    });
+  </script>
+</body>
+</html>
