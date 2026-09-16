@@ -221,7 +221,7 @@
   <script>
     // 관리자 암호 확인
     function checkAdmin() {
-      const password = "1234"; // 여기에 원하는 비밀번호를 설정하세요
+      const password = "4646"; // 여기에 원하는 비밀번호를 설정하세요
       const input = prompt("관리자 비밀번호를 입력하세요:");
       if (input !== password) {
         alert("비밀번호가 일치하지 않습니다.");
@@ -323,24 +323,6 @@
       formData: {}
     };
 
-    // URL 해시 복원
-    function loadFromHash() {
-      if (window.location.hash && window.location.hash.length > 1) {
-        try {
-          const raw = decodeURIComponent(escape(atob(window.location.hash.substring(1))));
-          const parsed = JSON.parse(raw);
-          if (parsed.steps && parsed.steps.length > 0) {
-            state.title = parsed.title || state.title;
-            state.steps = parsed.steps;
-            state.mailBody = parsed.mailBody || state.mailBody;
-            state.currentStepIndex = 0;
-          }
-        } catch (e) {
-          console.warn("해시 데이터 파싱 실패", e);
-        }
-      }
-    }
-
     // 워드프레스 CF7 파서 엔진
     function parseCF7(code) {
       let html = code;
@@ -426,65 +408,7 @@
       return html;
     }
 
-    // JSON 저장/불러오기
-    function downloadJson() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", "form_config.json");
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-    }
-
-    function importJson(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          state.title = parsed.title || state.title;
-          state.steps = parsed.steps || state.steps;
-          state.mailBody = parsed.mailBody || state.mailBody;
-          state.currentStepIndex = 0;
-          renderApp();
-          saveToLocalStorage();
-          alert("설정이 성공적으로 불러와졌습니다.");
-        } catch (err) {
-          alert("파일 파싱 실패: " + err.message);
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    // 로컬 스토리지 자동 저장
-    function saveToLocalStorage() {
-      localStorage.setItem('formConfig', JSON.stringify(state));
-    }
-
-    // 로컬 스토리지에서 불러오기
-    function loadFromLocalStorage() {
-      const saved = localStorage.getItem('formConfig');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          state.title = parsed.title || state.title;
-          state.steps = parsed.steps || state.steps;
-          state.mailBody = parsed.mailBody || state.mailBody;
-        } catch (e) {
-          console.warn("로컬 스토리지 파싱 실패", e);
-        }
-      }
-    }
-
-    // [중요] 상태 변경 시마다 자동 저장하도록 수정
-    function updateStateAndSave() {
-      saveToLocalStorage();
-      renderApp();
-    }
-
-    // UI 전체 렌더링 (저장 호출 추가)
+    // UI 전체 렌더링
     function renderApp() {
       // 1. 에디터 탭
       document.getElementById('formTitleInput').value = state.title;
@@ -543,8 +467,6 @@
         nextBtn.classList.remove('hidden');
         nextBtn.innerText = currentStep.nextText || '다음 단계';
       }
-      
-      saveToLocalStorage(); // 렌더링 시마다 자동 저장
     }
 
     // 메인 탭 전환 (양식 vs 메일)
@@ -707,8 +629,23 @@
       }
     }
 
-    // 고유 링크 URL 생성 및 복사
-    function generateShareUrl() {
+    // TinyURL API로 긴 URL을 짧게 줄이는 헬퍼 함수
+    async function shortenUrl(longUrl) {
+      try {
+        const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+        if (!res.ok) throw new Error('TinyURL 응답 오류: ' + res.status);
+        const shortUrl = (await res.text()).trim();
+        // TinyURL이 유효한 URL 형태로 응답했는지 간단히 확인
+        if (!shortUrl.startsWith('http')) throw new Error('TinyURL 응답 형식 오류');
+        return shortUrl;
+      } catch (err) {
+        console.warn('단축 URL 생성 실패, 원본 URL 사용:', err);
+        return null; // 실패 시 null 반환 → 호출부에서 원본 URL로 폴백
+      }
+    }
+
+    // 고유 링크 URL 생성 및 복사 (+ TinyURL 자동 단축)
+    async function generateShareUrl() {
       // 용량 최적화: 필요한 데이터만 추출
       const payload = {
         t: state.title,
@@ -720,16 +657,20 @@
       };
       // LZ-string을 이용한 압축
       const hash = LZString.compressToEncodedURIComponent(JSON.stringify(payload));
-      const shareUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
+      const longUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
 
       const banner = document.getElementById('shareBanner');
       const input = document.getElementById('shareInput');
-      input.value = shareUrl;
       banner.classList.remove('hidden');
+      input.value = '단축 링크 생성 중...';
+
+      const shortUrl = await shortenUrl(longUrl);
+      input.value = shortUrl || longUrl; // 실패하면 원본(긴) URL로 대체 표시
+
       copyShareUrl();
     }
 
-    // URL 로드 시 복원 함수도 최적화된 형식에 맞게 수정
+    // URL 로드 시 복원 함수 (압축 형식)
     function loadFromHash() {
       if (window.location.hash && window.location.hash.length > 1) {
         try {
@@ -756,8 +697,7 @@
 
     function copyShareUrl() {
       const input = document.getElementById('shareInput');
-      if (!input.value) {
-        generateShareUrl();
+      if (!input.value || input.value === '단축 링크 생성 중...') {
         return;
       }
       input.select();
@@ -773,11 +713,18 @@
 
     // 초기 실행
     window.addEventListener('DOMContentLoaded', () => {
+      const hasSharedLink = window.location.hash && window.location.hash.length > 1;
+
+      // 공유 링크(설문 참여자용)로 들어온 게 아니라 빌더에 직접 접근한 경우에만 관리자 비밀번호 확인
+      if (!hasSharedLink) {
+        checkAdmin();
+      }
+
       loadFromHash();
       renderApp();
 
       // 공유 링크로 접속한 경우(해시 존재) 빌더 숨기기
-      if (window.location.hash && window.location.hash.length > 1) {
+      if (hasSharedLink) {
         document.getElementById('builderContainer').classList.add('hidden');
         document.getElementById('viewerContainer').className = "lg:col-span-12 flex flex-col";
       }
