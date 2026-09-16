@@ -65,6 +65,13 @@
         <h1 class="text-sm font-semibold">문의 양식 편집 및 고유 링크 공유 도구</h1>
       </div>
       <div class="flex items-center gap-2">
+        <button onclick="downloadJson()" class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded transition shadow-sm">
+          💾 JSON 저장
+        </button>
+        <button onclick="document.getElementById('importInput').click()" class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded transition shadow-sm">
+          📂 JSON 불러오기
+        </button>
+        <input type="file" id="importInput" class="hidden" accept=".json" onchange="importJson(event)" />
         <button onclick="generateShareUrl()" class="bg-[#2271b1] hover:bg-[#135e96] text-white text-xs font-semibold px-3.5 py-1.5 rounded transition shadow-sm">
           🔗 공유 링크 생성
         </button>
@@ -419,7 +426,65 @@
       return html;
     }
 
-    // UI 전체 렌더링
+    // JSON 저장/불러오기
+    function downloadJson() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "form_config.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    }
+
+    function importJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          state.title = parsed.title || state.title;
+          state.steps = parsed.steps || state.steps;
+          state.mailBody = parsed.mailBody || state.mailBody;
+          state.currentStepIndex = 0;
+          renderApp();
+          saveToLocalStorage();
+          alert("설정이 성공적으로 불러와졌습니다.");
+        } catch (err) {
+          alert("파일 파싱 실패: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // 로컬 스토리지 자동 저장
+    function saveToLocalStorage() {
+      localStorage.setItem('formConfig', JSON.stringify(state));
+    }
+
+    // 로컬 스토리지에서 불러오기
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem('formConfig');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          state.title = parsed.title || state.title;
+          state.steps = parsed.steps || state.steps;
+          state.mailBody = parsed.mailBody || state.mailBody;
+        } catch (e) {
+          console.warn("로컬 스토리지 파싱 실패", e);
+        }
+      }
+    }
+
+    // [중요] 상태 변경 시마다 자동 저장하도록 수정
+    function updateStateAndSave() {
+      saveToLocalStorage();
+      renderApp();
+    }
+
+    // UI 전체 렌더링 (저장 호출 추가)
     function renderApp() {
       // 1. 에디터 탭
       document.getElementById('formTitleInput').value = state.title;
@@ -478,6 +543,8 @@
         nextBtn.classList.remove('hidden');
         nextBtn.innerText = currentStep.nextText || '다음 단계';
       }
+      
+      saveToLocalStorage(); // 렌더링 시마다 자동 저장
     }
 
     // 메인 탭 전환 (양식 vs 메일)
