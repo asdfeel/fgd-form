@@ -346,9 +346,9 @@
 
       // 4. [tel* name ...] / [mask* tel ...]
       html = html.replace(/\[(?:tel\*?|mask\*?)\s+([^\s\]]+)(?:[^\s\]]*\s+(?:placeholder\s+"([^"]+)"|"([^"]+)"))?[^\]]*\]/g, (m, name, ph1, ph2) => {
-        const ph = ph1 || ph2 || '';
+        const ph = ph1 || ph2 || '010-0000-0000';
         const val = state.formData[name] || '';
-        return `<input type="tel" name="${name}" value="${val}" placeholder="${ph}" />`;
+        return `<input type="tel" name="${name}" value="${val}" placeholder="${ph}" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/^(\\d{2,3})(\\d{3,4})(\\d{4})$/, '$1-$2-$3');" />`;
       });
 
       // 5. [email* name ...]
