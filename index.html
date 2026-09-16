@@ -672,6 +672,23 @@
       }
     }
 
+    function copyShareUrl() {
+      const input = document.getElementById('shareInput');
+      if (!input.value) {
+        generateShareUrl();
+        return;
+      }
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        const toast = document.getElementById('copiedToast');
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 2500);
+      }).catch(err => {
+        console.error('클립보드 복사 실패:', err);
+        alert('링크 복사에 실패했습니다.');
+      });
+    }
+
     // 초기 실행
     window.addEventListener('DOMContentLoaded', () => {
       loadFromHash();
