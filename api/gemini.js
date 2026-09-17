@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  const model = "gemini-3.8-flash"; // 요청한 모델명 적용
+  const model = "gemini-3.1-flash"; // 요청한 모델명 적용
 
   if (!prompt || !apiKey) {
     return res.status(400).json({ error: 'Prompt or API key is missing' });
