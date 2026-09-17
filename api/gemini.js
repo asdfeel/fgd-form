@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
   const { prompt } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
-  const model = "gemini-1.5-flash"; // 모델명 변수화
+  const model = "gemini-1.5-pro"; // 고성능 모델로 변경
 
   if (!prompt || !apiKey) {
     return res.status(400).json({ error: 'Invalid request or missing API key' });
