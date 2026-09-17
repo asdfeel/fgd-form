@@ -137,6 +137,15 @@
               </div>
             </div>
 
+            <!-- AI 코드 생성 섹션 -->
+            <div class="mt-4 p-3 bg-[#f0f6fc] border border-[#cce5ff] rounded">
+              <label class="block text-xs font-bold text-[#1d2327] mb-1">🤖 AI로 코드 생성하기</label>
+              <div class="flex gap-2">
+                <input type="text" id="aiPromptInput" placeholder="예: 이름, 이메일, 생년월일이 포함된 폼 만들어줘" class="flex-1 text-xs border border-[#8c8f94] rounded px-2 py-1 outline-none focus:border-[#2271b1]" />
+                <button onclick="generateCodeWithAI()" id="aiGenerateBtn" class="bg-[#2271b1] hover:bg-[#135e96] text-white text-xs font-bold px-3 py-1 rounded transition">생성</button>
+              </div>
+            </div>
+
             <!-- 코드 입력 텍스트 영역 -->
             <div>
               <textarea id="cf7CodeArea" rows="14" class="w-full font-mono text-xs border-2 border-[#2271b1] rounded p-3 bg-white outline-none leading-relaxed" oninput="onStepCodeChange()"></textarea>
@@ -219,6 +228,49 @@
   </main>
 
   <script>
+    // AI 코드 생성 함수
+    async function generateCodeWithAI() {
+      const promptInput = document.getElementById('aiPromptInput');
+      const generateBtn = document.getElementById('aiGenerateBtn');
+      const prompt = promptInput.value.trim();
+
+      if (!prompt) {
+        alert("요청 내용을 입력해주세요.");
+        return;
+      }
+
+      // 로딩 상태 표시
+      generateBtn.innerText = "생성 중...";
+      generateBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+
+        if (!response.ok) throw new Error('AI 코드 생성 실패');
+
+        const data = await response.json();
+        
+        // CF7 코드 영역에 결과 반영
+        const textarea = document.getElementById('cf7CodeArea');
+        textarea.value = data.code;
+        
+        // 상태 업데이트 및 UI 재렌더링
+        state.steps[state.currentStepIndex].code = data.code;
+        renderApp();
+
+      } catch (err) {
+        console.error(err);
+        alert("코드 생성 중 오류가 발생했습니다.");
+      } finally {
+        generateBtn.innerText = "생성";
+        generateBtn.disabled = false;
+      }
+    }
+
     // 관리자 암호 확인
     function checkAdmin() {
       const password = "4646"; // 여기에 원하는 비밀번호를 설정하세요
