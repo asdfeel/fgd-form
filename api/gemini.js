@@ -4,7 +4,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // 1. 요청 본문 파싱
   let prompt;
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -16,15 +15,8 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   const model = "gemini-1.5-pro";
 
-  // 2. 디버깅 로그
-  console.log("API Key 존재 여부:", !!apiKey);
-  console.log("Prompt:", prompt);
-
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is missing' });
-  }
-  if (!apiKey) {
-    return res.status(400).json({ error: 'API key is not configured on server' });
+  if (!prompt || !apiKey) {
+    return res.status(400).json({ error: 'Prompt or API key is missing' });
   }
 
   try {
@@ -42,11 +34,14 @@ export default async function handler(req, res) {
 
     const data = await geminiResponse.json();
     
-    if (data.candidates && data.candidates[0].content.parts[0].text) {
+    // 응답 전체를 서버 로그에 출력하여 구조 확인
+    console.log("Gemini API Full Response:", JSON.stringify(data, null, 2));
+    
+    if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
       return res.status(200).json({ code: data.candidates[0].content.parts[0].text });
     } else {
-      console.error("Gemini 응답 구조 오류:", JSON.stringify(data));
-      throw new Error('AI 응답을 생성할 수 없습니다.');
+      // 구조 오류 시 구체적인 응답 데이터를 클라이언트에게 에러로 반환
+      return res.status(500).json({ error: 'AI 응답 구조 오류', details: data });
     }
   } catch (err) {
     console.error('Gemini API 오류:', err);
