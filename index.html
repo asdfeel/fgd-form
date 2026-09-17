@@ -629,17 +629,22 @@
       }
     }
 
-    // is.gd API로 긴 URL을 짧게 줄이는 헬퍼 함수
+    // v.gd API로 긴 URL을 짧게 줄이는 헬퍼 함수
     async function shortenUrl(longUrl) {
       try {
-        const res = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
-        if (!res.ok) throw new Error('is.gd 응답 오류: ' + res.status);
+        const apiUrl = `https://v.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`;
+        const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error('단축 서비스 응답 오류: ' + res.status);
         const shortUrl = (await res.text()).trim();
-        // 간단히 확인
-        if (!shortUrl.startsWith('http')) throw new Error('is.gd 응답 형식 오류: ' + shortUrl);
-        return shortUrl;
+        
+        // 결과 확인
+        if (shortUrl.startsWith('http')) {
+          return shortUrl;
+        } else {
+          throw new Error('응답 형식 오류: ' + shortUrl);
+        }
       } catch (err) {
-        console.warn('단축 URL 생성 실패, 원본 URL 사용:', err);
+        console.error('단축 URL 생성 실패:', err);
         return null; // 실패 시 null 반환 → 호출부에서 원본 URL로 폴백
       }
     }
