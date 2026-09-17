@@ -629,20 +629,17 @@
       }
     }
 
-    // 서버리스 함수를 통해 v.gd API 호출
+    // TinyURL API로 긴 URL을 짧게 줄이는 헬퍼 함수
     async function shortenUrl(longUrl) {
       try {
-        const response = await fetch(`/api/shorten?url=${encodeURIComponent(longUrl)}`);
-        if (!response.ok) throw new Error('서버리스 함수 응답 오류: ' + response.status);
-        
-        const data = await response.json();
-        if (data.shortUrl) {
-          return data.shortUrl;
-        } else {
-          throw new Error('단축 URL 없음: ' + data.error);
-        }
+        const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+        if (!res.ok) throw new Error('TinyURL 응답 오류: ' + res.status);
+        const shortUrl = (await res.text()).trim();
+        // TinyURL이 유효한 URL 형태로 응답했는지 간단히 확인
+        if (!shortUrl.startsWith('http')) throw new Error('TinyURL 응답 형식 오류');
+        return shortUrl;
       } catch (err) {
-        console.error('단축 URL 생성 실패:', err);
+        console.warn('단축 URL 생성 실패, 원본 URL 사용:', err);
         return null; // 실패 시 null 반환 → 호출부에서 원본 URL로 폴백
       }
     }
