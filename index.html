@@ -629,19 +629,17 @@
       }
     }
 
-    // v.gd API로 긴 URL을 짧게 줄이는 헬퍼 함수
+    // 서버리스 함수를 통해 v.gd API 호출
     async function shortenUrl(longUrl) {
       try {
-        const apiUrl = `https://v.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`;
-        const res = await fetch(apiUrl);
-        if (!res.ok) throw new Error('단축 서비스 응답 오류: ' + res.status);
-        const shortUrl = (await res.text()).trim();
+        const response = await fetch(`/api/shorten?url=${encodeURIComponent(longUrl)}`);
+        if (!response.ok) throw new Error('서버리스 함수 응답 오류: ' + response.status);
         
-        // 결과 확인
-        if (shortUrl.startsWith('http')) {
-          return shortUrl;
+        const data = await response.json();
+        if (data.shortUrl) {
+          return data.shortUrl;
         } else {
-          throw new Error('응답 형식 오류: ' + shortUrl);
+          throw new Error('단축 URL 없음: ' + data.error);
         }
       } catch (err) {
         console.error('단축 URL 생성 실패:', err);
