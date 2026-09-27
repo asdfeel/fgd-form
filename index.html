@@ -576,6 +576,33 @@
       renderApp();
     }
 
+    // JSON 저장/불러오기
+    function downloadJson() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "form_data.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    }
+
+    function importJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedState = JSON.parse(e.target.result);
+          state = importedState;
+          renderApp();
+        } catch (err) {
+          alert("파일 형식이 올바르지 않습니다.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
     // 폼 최종 제출 및 메일 탭 템플릿 변환
     async function submitActiveForm() {
       saveFormData();
