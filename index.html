@@ -656,26 +656,8 @@
       }
     }
 
-    // 서버리스 함수를 통해 URL 단축 호출
-    async function shortenUrl(longUrl) {
-      try {
-        const response = await fetch(`/api/shorten?url=${encodeURIComponent(longUrl)}`);
-        if (!response.ok) throw new Error('서버리스 함수 응답 오류: ' + response.status);
-
-        const data = await response.json();
-        if (data.shortUrl) {
-          return data.shortUrl;
-        } else {
-          throw new Error('단축 URL 없음: ' + data.error);
-        }
-      } catch (err) {
-        console.error('단축 URL 생성 실패:', err);
-        return null; // 실패 시 null 반환 → 호출부에서 원본 URL로 폴백
-      }
-    }
-
-    // 고유 링크 URL 생성 및 복사 (+ TinyURL 자동 단축)
-    async function generateShareUrl() {
+    // 고유 링크 URL 생성 및 복사 (단축 없이 원본 URL 사용)
+    function generateShareUrl() {
       // 용량 최적화: 필요한 데이터만 추출
       const payload = {
         t: state.title,
@@ -692,10 +674,9 @@
       const banner = document.getElementById('shareBanner');
       const input = document.getElementById('shareInput');
       banner.classList.remove('hidden');
-      input.value = '단축 링크 생성 중...';
-
-      const shortUrl = await shortenUrl(longUrl);
-      input.value = shortUrl || longUrl; // 실패하면 원본(긴) URL로 대체 표시
+      
+      // 단축 없이 원본 URL 바로 표시
+      input.value = longUrl;
 
       copyShareUrl();
     }
