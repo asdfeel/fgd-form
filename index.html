@@ -286,8 +286,12 @@
 
 <label><b>거주지(읍/면/동) <span class="text-red-500">*</span></b></label>
 [text* address3 maxlength:6 placeholder "고등동"]`
-
-<label><b>직업 <span class="text-red-500">*</span></b></label>
+      },
+      {
+        id: 2,
+        name: "직업/상세 및 최종 제출",
+        nextText: "신청서 제출하기",
+        code: `<label><b>직업 <span class="text-red-500">*</span></b></label>
 [select* job first_as_label "-- 직업선택 --" "회사원" "자영업" "프리랜서" "전업주부" "학생" "무직"]
 
 <label><b>소속(직장명/학교명-학년-대학생은 학과/프리랜서는 하시는일 간단히/자영업은 상호명) <span class="text-red-500">*</span></b></label>
@@ -308,8 +312,7 @@
 [acceptance acceptance-681] 개인정보 수집 및 이용에 동의함 <span style="color:red">(필수)</span> [/acceptance]
 
 [submit "좌담회/설문 신청하기"]`
-      }
-    ];
+
 
     let state = {
       title: "좌담회/설문 참가 신청서",
