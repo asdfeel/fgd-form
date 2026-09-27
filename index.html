@@ -95,10 +95,16 @@
       <!-- 좌측: 워드프레스 문의 양식 관리자 영역 -->
       <section class="lg:col-span-7 space-y-4">
         
-        <!-- 제목 입력창 -->
-        <div class="bg-white border border-[#c3c4c7] p-3 rounded shadow-sm">
-          <label class="block text-xs font-bold text-[#50575e] mb-1">문의 양식 제목</label>
-          <input type="text" id="formTitleInput" value="좌담회/설문 참가 신청서" class="w-full text-base font-bold border border-[#8c8f94] rounded px-3 py-1.5 outline-none focus:border-[#2271b1]" oninput="updateFormTitle()" />
+        <!-- 제목 및 폼 ID 입력창 -->
+        <div class="bg-white border border-[#c3c4c7] p-3 rounded shadow-sm grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-[#50575e] mb-1">문의 양식 제목</label>
+            <input type="text" id="formTitleInput" value="좌담회/설문 참가 신청서" class="w-full text-base font-bold border border-[#8c8f94] rounded px-3 py-1.5 outline-none focus:border-[#2271b1]" oninput="updateFormMeta()" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-[#50575e] mb-1">워드프레스 폼 ID</label>
+            <input type="text" id="wpFormIdInput" placeholder="예: 1234" class="w-full text-base font-bold border border-[#8c8f94] rounded px-3 py-1.5 outline-none focus:border-[#2271b1]" oninput="updateFormMeta()" />
+          </div>
         </div>
 
         <!-- 메인 탭 (양식 / 메일) -->
