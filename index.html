@@ -752,20 +752,25 @@
 
     // 초기 실행
     window.addEventListener('DOMContentLoaded', () => {
+      // 1. 데이터 복원 (해시가 있으면 state를 덮어씁니다)
+      loadFromHash();
+      
       const hasSharedLink = window.location.hash && window.location.hash.length > 1;
 
-      // 공유 링크(설문 참여자용)로 들어온 게 아니라 빌더에 직접 접근한 경우에만 관리자 비밀번호 확인
+      // 2. 관리자 확인 (공유 링크가 아닐 때만)
       if (!hasSharedLink) {
         checkAdmin();
       }
 
-      loadFromHash();
+      // 3. UI 렌더링
       renderApp();
 
-      // 공유 링크로 접속한 경우(해시 존재) 빌더 숨기기
+      // 4. 공유 링크로 접속한 경우(해시 존재) 빌더 숨기기
       if (hasSharedLink) {
-        document.getElementById('builderContainer').classList.add('hidden');
-        document.getElementById('viewerContainer').className = "lg:col-span-12 flex flex-col";
+        const builder = document.getElementById('builderContainer');
+        const viewer = document.getElementById('viewerContainer');
+        if (builder) builder.classList.add('hidden');
+        if (viewer) viewer.className = "lg:col-span-12 flex flex-col";
       }
     });
   </script>
