@@ -278,18 +278,14 @@
 <label><b>연락처 <span class="text-red-500">*</span></b></label>
 [mask* tel "___-____-____"]
 
-<label><b>거주지(서울,인천,경기 시/도) <span class="text-red-500">*</span></b></label>
+<label><b>거주지(시/도) <span class="text-red-500">*</span></b></label>
 [select* address1 first_as_label "-- 선택해주세요 --" "서울시" "인천시" "경기도"]
 
-<label><b>거주지(서울,인천,경기 시/군/구) <span class="text-red-500">*</span></b></label>
-[text* address2 maxlength:10 placeholder "예: 성남시 수정구"]`
-      },
-      {
-        id: 2,
-        name: "직업/상세 및 최종 제출",
-        nextText: "신청서 제출하기",
-        code: `<label><b>거주지(읍/면/동) <span class="text-red-500">*</span></b></label>
-[text* address3 maxlength:4 placeholder "예: 역삼동"]
+<label><b>거주지(시/군/구) <span class="text-red-500">*</span></b></label>
+[text* address2 maxlength:10 placeholder "성남시 수정구"]
+
+<label><b>거주지(읍/면/동) <span class="text-red-500">*</span></b></label>
+[text* address3 maxlength:6 placeholder "고등동"]`
 
 <label><b>직업 <span class="text-red-500">*</span></b></label>
 [select* job first_as_label "-- 직업선택 --" "회사원" "자영업" "프리랜서" "전업주부" "학생" "무직"]
