@@ -525,6 +525,15 @@
     }
 
     function navigateStep(direction) {
+      // 다음 단계로 이동하는 경우 유효성 검사 실행
+      if (direction > 0) {
+        const form = document.getElementById('renderForm');
+        if (form && !form.checkValidity()) {
+          form.reportValidity(); // 필수 입력 필드 경고 표시
+          return;
+        }
+      }
+
       saveFormData();
       const target = state.currentStepIndex + direction;
       if (target >= 0 && target < state.steps.length) {
