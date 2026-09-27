@@ -549,8 +549,9 @@
     }
 
     // 에디터 수정 이벤트 핸들러
-    function updateFormTitle() {
+    function updateFormMeta() {
       state.title = document.getElementById('formTitleInput').value;
+      state.wpFormId = document.getElementById('wpFormIdInput').value;
       document.getElementById('previewTitle').innerText = state.title;
     }
 
@@ -622,8 +623,13 @@
     async function submitActiveForm() {
       saveFormData();
 
+      const wpFormId = state.wpFormId || "YOUR_CF7_FORM_ID";
+      if (wpFormId === "YOUR_CF7_FORM_ID" || !wpFormId) {
+        alert("워드프레스 폼 ID를 입력해주세요.");
+        return;
+      }
+
       const wpSiteUrl = "https://technlife.kr"; // 워드프레스 주소
-      const wpFormId = "YOUR_CF7_FORM_ID"; // 사용자가 워드프레스에서 확인한 폼 ID 입력 필요
       const endpoint = `${wpSiteUrl}/wp-json/contact-form-7/v1/contact-forms/${wpFormId}/feedback`;
 
       const formData = new FormData();
