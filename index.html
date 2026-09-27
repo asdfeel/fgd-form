@@ -682,6 +682,7 @@
       // 용량 최적화: 필요한 데이터만 추출
       const payload = {
         t: state.title,
+        f: state.wpFormId, // 폼 ID 포함
         s: state.steps.map(step => ({
           n: step.name,
           c: step.code
@@ -712,6 +713,7 @@
           
           if (parsed.s && parsed.s.length > 0) {
             state.title = parsed.t || state.title;
+            state.wpFormId = parsed.f || ""; // 폼 ID 복원
             state.steps = parsed.s.map(step => ({
               id: 0,
               name: step.n,
@@ -720,6 +722,9 @@
             }));
             state.mailBody = parsed.m || state.mailBody;
             state.currentStepIndex = 0;
+            // UI 업데이트
+            const wpFormIdInput = document.getElementById('wpFormIdInput');
+            if (wpFormIdInput) wpFormIdInput.value = state.wpFormId;
           }
         } catch (e) {
           console.warn("해시 데이터 파싱 실패", e);
