@@ -381,9 +381,10 @@
       });
 
       // 7. [select* name ...]
-      html = html.replace(/\[select\*?\s+([^\s\]]+)(?:\s+first_as_label)?\s+([^\]]+)\]/g, (m, name, rawOptions) => {
+      html = html.replace(/<label>(<b>.*?<\/b>)<\/label>\s*\[select(\*?)\s+([^\s\]]+)(?:\s+first_as_label)?\s+([^\]]+)\]/g, (m, labelContent, required, name, rawOptions) => {
+        const id = nextId();
         const matches = rawOptions.match(/"([^"]+)"/g) || [];
-        let sel = `<select name="${name}">`;
+        let sel = `<label for="${id}">${labelContent}</label><select id="${id}" name="${name}">`;
         matches.forEach((item) => {
           const val = item.replace(/"/g, "");
           const isSelected = state.formData[name] === val ? 'selected' : '';
@@ -395,10 +396,11 @@
 
       // 8. [acceptance name] ... [/acceptance]
       html = html.replace(/\[acceptance\s+([^\s\]]+)\]([\s\S]*?)\[\/acceptance\]/g, (m, name, labelHtml) => {
+        const id = nextId();
         const isChecked = state.formData[name] ? 'checked' : '';
         return `
-          <label class="cf-option-label mt-2">
-            <input type="checkbox" name="${name}" value="동의함" ${isChecked} required class="rounded text-blue-600 focus:ring-blue-500">
+          <label class="cf-option-label mt-2" for="${id}">
+            <input type="checkbox" id="${id}" name="${name}" value="동의함" ${isChecked} required class="rounded text-blue-600 focus:ring-blue-500">
             <span class="text-xs text-gray-700 leading-snug">${labelHtml.trim()}</span>
           </label>`;
       });
